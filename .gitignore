@@ -1,0 +1,10 @@
+
+out
+target
+*.iml
+log
+*.patch
+
+
+/.idea/
+/collectionSQL/
