@@ -70,49 +70,45 @@ public class ParserRequest {
         }
         List<String> result = new ArrayList<>();
         while (!characters.isEmpty()) {
-            if ((Character.isSpaceChar(characters.peek()) || characters.peek().equals(',')) && !stack.isEmpty() && stack.stream().filter((a) -> a.equals("'")).mapToInt((a) -> 1).sum() == 1) {
+            Character nextCharacter = characters.peek();
+            boolean isSpaceOrComma = Character.isSpaceChar(nextCharacter) || nextCharacter.equals(',');
+            // Проверяет запятую и пробел, если они внутри одинарных ковычек стэк заполняется дальше, если нет стэк сохраняется, а символ удаляются
+            if (isSpaceOrComma && !stack.isEmpty() && stack.stream().filter((a) -> a.equals("'")).mapToInt((a) -> 1).sum() == 1) {
                 stack.offer(characters.poll().toString());
                 continue;
-            } else if (Character.isSpaceChar(characters.peek()) || characters.peek().equals(',')) {
-                stringBuilder = new StringBuilder();
-                while (!stack.isEmpty()) {
-                    stringBuilder.append(stack.poll());
-                }
-                String e = stringBuilder.toString();
-                e.trim();
-                if (e.length() >= 1) {
-                    result.add(e);
-                    stringBuilder = new StringBuilder();
-                }
+            } else if (isSpaceOrComma) {
+                saveStackInResult(stack, stringBuilder, result);
                 characters.poll();
                 continue;
             }
-            if (characters.peek().equals('\'') || Character.isLetter(characters.peek()) || Character.isDigit(characters.peek())
-                    || characters.peek().equals('%') || characters.peek().equals('.')) {
+            // Добовляет символ в стэк, если он относится к допустимым для аттребутов и значений
+            if (nextCharacter.equals('\'') || nextCharacter.equals('%') || nextCharacter.equals('.')
+                    || Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) {
                 stack.offer(characters.poll().toString());
                 continue;
             }
-            if (stack.isEmpty() && !(Character.isLetter(characters.peek()) || Character.isDigit(characters.peek())) && !characters.peek().equals('\'')) {
-                while (!(Character.isLetter(characters.peek()) || Character.isDigit(characters.peek())) && !characters.peek().equals('\''))
+            // Добавляет в стэк символы сравнения и сохраняет их в результат
+            if (stack.isEmpty() && !(Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) && !nextCharacter.equals('\'')) {
+                while (!(Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) && !nextCharacter.equals('\'')) {
                     stack.offer(characters.poll().toString());
+                    nextCharacter = characters.peek();
+                }
             }
-            while (!stack.isEmpty()) {
-                stringBuilder.append(stack.poll());
-            }
-            String e = stringBuilder.toString().trim();
-            if (e.length() >= 1) {
-                result.add(e);
-                stringBuilder = new StringBuilder();
-            }
+            saveStackInResult(stack, stringBuilder, result);
         }
+        saveStackInResult(stack, stringBuilder, result);
+        return result;
+    }
+
+    private static void saveStackInResult(Queue<String> stack, StringBuilder stringBuilder, List<String> result) {
         while (!stack.isEmpty()) {
             stringBuilder.append(stack.poll());
         }
-        String e = stringBuilder.toString().trim();
-        if (e.length() >= 1) {
-            result.add(e);
+        String token = stringBuilder.toString().trim();
+        if (token.length() >= 1) {
+            result.add(token);
+            stringBuilder.setLength(0);
         }
-        return result;
     }
 
     private void saveAllValues(List<String> result, Request request) {
