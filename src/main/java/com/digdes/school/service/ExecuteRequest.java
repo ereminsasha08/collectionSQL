@@ -1,5 +1,6 @@
 package com.digdes.school.service;
 
+import com.digdes.school.exception.UncorrectedAttributeException;
 import com.digdes.school.model.Operator;
 import com.digdes.school.model.Request;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -125,18 +126,18 @@ public class ExecuteRequest {
 
     private static Set<Map<String, Object>> getExecuteWhereWithPredicated(List<Map<String, Object>> maps, Map<String, Map<String, Object>> predicatesAnd, Boolean isAnd) {
         Set<Map<String, Object>> result = new HashSet<>();
-        List<Map<String, Object>> maps1;
         for (Map.Entry<String, Map<String, Object>> next : predicatesAnd.entrySet()) {
-            String key = next.getKey();
-            BiFunction<Object, Object, Boolean> objectObjectBooleanBiFunction = compareOperators.get(key);
-            Map<String, Object> value = next.getValue();
-            for (Map.Entry<String, Object> next1 : value.entrySet()) {
-                String key1 = next1.getKey();
-                Object value2 = next1.getValue();
+            String operatorRequest = next.getKey();
+            BiFunction<Object, Object, Boolean> compareOperator = compareOperators.get(operatorRequest);
+            Map<String, Object> entity = next.getValue();
+            for (Map.Entry<String, Object> next1 : entity.entrySet()) {
+                String keyRequest = next1.getKey();
+                Object valueRequest = next1.getValue();
                 if (isAnd) {
-                    maps = filterByPredicate(maps, objectObjectBooleanBiFunction, key1, value2);
+                    maps = filterByPredicate(maps, compareOperator, keyRequest, valueRequest);
                 } else {
-                    maps1 = filterByPredicate(maps, objectObjectBooleanBiFunction, key1, value2);
+                    List<Map<String, Object>> maps1;
+                    maps1 = filterByPredicate(maps, compareOperator, keyRequest, valueRequest);
                     result.addAll(maps1);
                 }
             }
@@ -147,36 +148,37 @@ public class ExecuteRequest {
         return result;
     }
 
-    private static List<Map<String, Object>> filterByPredicate(List<Map<String, Object>> maps, BiFunction<Object, Object, Boolean> objectObjectBooleanBiFunction, String key1, Object value2) {
-        return maps.stream().filter(map -> typeCasting(objectObjectBooleanBiFunction, key1, value2, map)).toList();
+    private static List<Map<String, Object>> filterByPredicate(List<Map<String, Object>> maps, BiFunction<Object, Object, Boolean> compareOperator, String keyRequest, Object valueRequest) {
+        return maps.stream().filter(map -> applyCorrectPredicate(compareOperator, keyRequest, valueRequest, map)).toList();
     }
 
-    private static boolean typeCasting(BiFunction<Object, Object, Boolean> objectObjectBooleanBiFunction, String key1, Object value2, Map<String, Object> map) {
-        try {
-            Boolean value1 = (Boolean) map.get(key1);
-            return objectObjectBooleanBiFunction.apply(value1, Boolean.valueOf((String) value2));
-        } catch (Exception e) {
+    private static boolean applyCorrectPredicate(BiFunction<Object, Object, Boolean> compareOperator, String key, Object valueRequest, Map<String, Object> map) {
+        String correctKey = attributeNameIgnoreCase(key, map);
+        if (correctKey == null) return false;
+        Object value = map.get(correctKey);
+        if (value instanceof Boolean) {
+            return compareOperator.apply(value, Boolean.valueOf((String) valueRequest));
         }
-        try {
-            Double value1 = (Double) map.get(key1);
-            return objectObjectBooleanBiFunction.apply(value1, Double.valueOf((String) value2));
-        } catch (Exception e2) {
+        if (value instanceof Double) {
+            return compareOperator.apply(value, Double.valueOf((String) valueRequest));
         }
-        try {
-            Long value1 = (Long) map.get(key1);
-            if (value2.toString().contains("."))
-                throw new Exception();
-            return objectObjectBooleanBiFunction.apply(value1, Long.valueOf((String) value2));
-        } catch (Exception e1) {
+        if (value instanceof Long) {
+            if (!valueRequest.toString().contains("."))
+                return compareOperator.apply(value, Long.valueOf((String) valueRequest));
         }
-
-        try {
-
-            String value1 = (String) map.get(key1);
-            return objectObjectBooleanBiFunction.apply(value1, value2);
-        } catch (Exception e3) {
+        if (value instanceof String) {
+            return compareOperator.apply(value, valueRequest);
+        } else
             return false;
-        }
+    }
+
+    private static String attributeNameIgnoreCase(String key, Map<String, Object> map) {
+        Optional<String> first = map.keySet().stream().filter(k -> k.equalsIgnoreCase(key)).findFirst();
+        if (first.isPresent())
+            return first.get();
+        else if (!key.isBlank())
+            throw new UncorrectedAttributeException(String.format("Некорректный атрибут %s", key));
+        return null;
     }
 }
 

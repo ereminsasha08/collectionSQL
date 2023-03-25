@@ -1,6 +1,7 @@
 package com.digdes.school;
 
 
+import com.digdes.school.exception.UncorrectedAttributeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -71,17 +72,34 @@ public class JavaSchoolStarterTest {
         this.starter = new JavaSchoolStarter(maps);
     }
 
+    @Test
+    public void exceptionSelectWithWhere_not_correct_attribute() {
+        try {
+            starter.execute("SELECT where 'name'='Федор'");
+        } catch (RuntimeException e) {
+            assertThat(e, instanceOf(UncorrectedAttributeException.class));
+        }
+    }
+
     //results.addAll(starter.execute("SELECT"));
     @Test
-    public void selectWithWhere_Correct() {
+    public void selectWithWhere_not_correct_register_attribute() {
+        List<Map<String, Object>> actual = starter.execute("SELECT where 'ID'< 3");
+        assertThat(actual, hasSize(2));
+    }
+
+    @Test
+    public void selectWithWhere_not_equal_to() {
         List<Map<String, Object>> actual = starter.execute("SELECT where 'id'!= 1");
         assertThat(actual, hasSize(3));
     }
+
     @Test
-    public void selectWithWhere_Incorrect() {
+    public void selectWithWhere_incorrectTypeValue() {
         List<Map<String, Object>> actual = starter.execute("SELECT where 'id'!= 1.0");
         assertThat(actual, hasSize(0));
     }
+
     @Test
     public void selectWithWhere_Like() {
         List<Map<String, Object>> actual = starter.execute("SELECT where 'lastName' like '%ров'");
@@ -89,6 +107,7 @@ public class JavaSchoolStarterTest {
         expected.add(row4);
         assertThat(actual, samePropertyValuesAs(expected));
     }
+
     @Test
     public void selectWithWhere_and_or_and_FindThree() {
         List<Map<String, Object>> actual = starter.execute("SELECT where 'age' = 40 and 'lastName'='Федоров' or 'id' = 1 and 'cost'= null");
