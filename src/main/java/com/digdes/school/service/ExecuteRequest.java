@@ -152,9 +152,8 @@ public class ExecuteRequest {
         return maps.stream().filter(map -> applyCorrectPredicate(compareOperator, keyRequest, valueRequest, map)).toList();
     }
 
-    private static boolean applyCorrectPredicate(BiFunction<Object, Object, Boolean> compareOperator, String key, Object valueRequest, Map<String, Object> map) {
+    private static Boolean applyCorrectPredicate(BiFunction<Object, Object, Boolean> compareOperator, String key, Object valueRequest, Map<String, Object> map) {
         String correctKey = attributeNameIgnoreCase(key, map);
-        if (correctKey == null) return false;
         Object value = map.get(correctKey);
         if (value instanceof Boolean) {
             return compareOperator.apply(value, Boolean.valueOf((String) valueRequest));
@@ -168,17 +167,15 @@ public class ExecuteRequest {
         }
         if (value instanceof String) {
             return compareOperator.apply(value, valueRequest);
-        } else
-            return false;
+        }
+        return null;
     }
 
     private static String attributeNameIgnoreCase(String key, Map<String, Object> map) {
         Optional<String> first = map.keySet().stream().filter(k -> k.equalsIgnoreCase(key)).findFirst();
         if (first.isPresent())
             return first.get();
-        else if (!key.isBlank())
-            throw new UncorrectedAttributeException(String.format("Некорректный атрибут %s", key));
-        return null;
+        throw new UncorrectedAttributeException(String.format("Некорректный атрибут %s", key));
     }
 }
 

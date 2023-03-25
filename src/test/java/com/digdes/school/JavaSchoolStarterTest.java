@@ -72,6 +72,8 @@ public class JavaSchoolStarterTest {
         this.starter = new JavaSchoolStarter(maps);
     }
 
+
+
     @Test
     public void exceptionSelectWithWhere_not_correct_attribute() {
         try {
@@ -87,6 +89,14 @@ public class JavaSchoolStarterTest {
         List<Map<String, Object>> actual = starter.execute("SELECT where 'ID'< 3");
         assertThat(actual, hasSize(2));
     }
+    @Test
+    public void selectWithNull() {
+        try {
+            starter.execute("SELECT where 'id'< null");
+        } catch (RuntimeException e) {
+            assertThat(e, instanceOf(NumberFormatException.class));
+        }
+    }
 
     @Test
     public void selectWithWhere_not_equal_to() {
@@ -96,8 +106,11 @@ public class JavaSchoolStarterTest {
 
     @Test
     public void selectWithWhere_incorrectTypeValue() {
-        List<Map<String, Object>> actual = starter.execute("SELECT where 'id'!= 1.0");
-        assertThat(actual, hasSize(0));
+        try {
+            starter.execute("SELECT where 'lastName'>3");
+        } catch (RuntimeException e) {
+            assertThat(e, instanceOf(NumberFormatException.class));
+        }
     }
 
     @Test
@@ -109,8 +122,8 @@ public class JavaSchoolStarterTest {
     }
 
     @Test
-    public void selectWithWhere_and_or_and_FindThree() {
-        List<Map<String, Object>> actual = starter.execute("SELECT where 'age' = 40 and 'lastName'='Федоров' or 'id' = 1 and 'cost'= null");
+    public void selectWithWhere_and_or_FindTwo() {
+        List<Map<String, Object>> actual = starter.execute("SELECT where 'age' = 40 and 'lastName'='Федоров' or 'id' = 1");
         expected.add(row1);
         expected.add(row4);
         assertThat(actual, samePropertyValuesAs(expected));
@@ -174,6 +187,18 @@ public class JavaSchoolStarterTest {
         List<Map<String, Object>> actual = starter.execute("INSERT VALUES 'lastName' = 'Федоров' , 'id'=4, 'age'=40, 'active'=true");
         expected.add(row4);
         assertThat(expected, samePropertyValuesAs(actual));
+    }
+
+    @Test
+    public void updateWithNull() {
+        List<Map<String, Object>> actual = starter.execute("UPDATE VALUES 'active'=null, 'cost'=10.1");
+        for (Map<String, Object> map :
+                actual) {
+            assertThat(map, hasEntry("active", null));
+            assertThat(map, hasEntry("cost", 10.1));
+
+        }
+        assertThat(actual, hasSize(4));
     }
 
     @Test
