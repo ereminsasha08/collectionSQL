@@ -72,25 +72,25 @@ public class ParserRequest {
         while (!characters.isEmpty()) {
             Character nextCharacter = characters.peek();
             boolean isSpaceOrComma = Character.isSpaceChar(nextCharacter) || nextCharacter.equals(',');
-            // Проверяет запятую и пробел, если они внутри одинарных ковычек стэк заполняется дальше, если нет стэк сохраняется, а символ удаляются
+            // Проверяет запятую и пробел, если они внутри одинарных ковычек стэк заполняется дальше, если нет стэк сохраняется, а символ удаляется
             if (isSpaceOrComma && !stack.isEmpty() && stack.stream().filter((a) -> a.equals("'")).mapToInt((a) -> 1).sum() == 1) {
-                stack.offer(characters.poll().toString());
+                stack.offer(Objects.requireNonNull(characters.poll()).toString());
                 continue;
             } else if (isSpaceOrComma) {
                 saveStackInResult(stack, stringBuilder, result);
                 characters.poll();
                 continue;
             }
-            // Добовляет символ в стэк, если он относится к допустимым для аттребутов и значений
+            // Добовляет символ в стэк, если он относится к допустимым для атрибутов и значений
             if (nextCharacter.equals('\'') || nextCharacter.equals('%') || nextCharacter.equals('.')
-                    || Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) {
-                stack.offer(characters.poll().toString());
+                    || Character.isLetterOrDigit(nextCharacter)) {
+                stack.offer(Objects.requireNonNull(characters.poll()).toString());
                 continue;
             }
             // Добавляет в стэк символы сравнения и сохраняет их в результат
-            if (stack.isEmpty() && !(Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) && !nextCharacter.equals('\'')) {
-                while (!(Character.isLetter(nextCharacter) || Character.isDigit(nextCharacter)) && !nextCharacter.equals('\'')) {
-                    stack.offer(characters.poll().toString());
+            if (stack.isEmpty() && !Character.isLetterOrDigit(nextCharacter) && !nextCharacter.equals('\'')) {
+                while (!Character.isLetterOrDigit(nextCharacter) && !nextCharacter.equals('\'')) {
+                    stack.offer(Objects.requireNonNull(characters.poll()).toString());
                     nextCharacter = characters.peek();
                 }
             }
